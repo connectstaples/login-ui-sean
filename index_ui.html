@@ -17,6 +17,7 @@
   <script>
     var serviceWorkerVersion = null;
     var scriptLoaded = false;
+    
     function loadMainDartJs() {
       if (scriptLoaded) {
         return;
@@ -28,36 +29,46 @@
       document.body.append(scriptTag);
     }
 
-            if (!reg.active && (reg.installing || reg.waiting)) {
-              // No active web worker and we have installed or are installing
-              // one for the first time. Simply wait for it to activate.
-              waitForActivation(reg.installing || reg.waiting);
-            } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
-              // When the app updates the serviceWorkerVersion changes, so we
-              // need to ask the service worker to update.
-              console.log('New service worker available.');
-              reg.update();
-              waitForActivation(reg.installing);
-            } else {
-              // Existing service worker is still good.
-              console.log('Loading app from service worker.');
-              loadMainDartJs();
-            }
-
-        // If service worker doesn't succeed in a reasonable amount of time,
-        // fallback to plaint <script> tag.
-        setTimeout(() => {
-          if (!scriptLoaded) {
-            console.warn(
-              'Failed to load app from service worker. Falling back to plain <script> tag.',
-            );
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(function (reg) {
+          if (!reg.active && (reg.installing || reg.waiting)) {
+            // No active web worker and we have installed or are installing
+            // one for the first time. Simply wait for it to activate.
+            waitForActivation(reg.installing || reg.waiting);
+          } else if (!reg.active.scriptURL.endsWith(serviceWorkerVersion)) {
+            // When the app updates the serviceWorkerVersion changes, so we
+            // need to ask the service worker to update.
+            console.log('New service worker available.');
+            reg.update();
+            waitForActivation(reg.installing);
+          } else {
+            // Existing service worker is still good.
+            console.log('Loading app from the service worker.');
             loadMainDartJs();
           }
-        }, 4000);
-    else {
+        })
+        .catch(function (error) {
+          console.error('Service Worker registration failed:', error);
+          // Fallback to plain <script> tag.
+          loadMainDartJs();
+        });
+    } else {
       // Service workers not supported. Just drop the <script> tag.
       loadMainDartJs();
     }
+
+    // If service worker doesn't succeed in a reasonable amount of time,
+    // fallback to plain <script> tag.
+    setTimeout(() => {
+      if (!scriptLoaded) {
+        console.warn(
+          'Failed to load app from the service worker. Falling back to plain <script> tag.'
+        );
+        loadMainDartJs();
+      }
+    }, 4000);
   </script>
 </body>
 </html>
+
